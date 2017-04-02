@@ -1,0 +1,47 @@
+{
+  "name": "vellum",
+  "version": "5.2.11",
+  "private": true,
+  "description": "The Veldhuis rules engine. Rota, Hours and Pay-Ready sit on this.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "pack": "tsc -p tsconfig.pack.json",
+    "test": "npm run test:unit && npm run test:fixtures && npm run test:contracts",
+    "test:unit": "jest --selectProjects unit",
+    "test:fixtures": "jest --selectProjects rules-fixtures",
+    "test:contracts": "jest --selectProjects contract-checks"
+  },
+  "jest": {
+    "projects": [
+      {
+        "displayName": "unit",
+        "preset": "ts-jest",
+        "testEnvironment": "node",
+        "testMatch": ["<rootDir>/test/*.test.ts"]
+      },
+      {
+        "displayName": "rules-fixtures",
+        "preset": "ts-jest",
+        "testEnvironment": "node",
+        "testMatch": ["<rootDir>/test/fixtures/**/*.test.ts"]
+      },
+      {
+        "displayName": "contract-checks",
+        "preset": "ts-jest",
+        "testEnvironment": "node",
+        "testMatch": ["<rootDir>/test/contract-checks/**/*.test.ts"]
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.5"
+  }
+}
