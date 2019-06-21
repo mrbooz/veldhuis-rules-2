@@ -26,7 +26,11 @@ export function rowFor(shift: Shift, contract: Contract, ward: string): RotaRow 
     throw new Error("rota: unreadable shift times on the " + ward + " page");
   }
 
+  const crossesMonthEnd = !sameMonth(shift.start, shift.end);
   const day = attributionDay(shift, contract);
+  if (crossesMonthEnd) {
+    // TODO
+  }
   return { ward: ward, day: day, startsAt: startsAt, endsAt: endsAt };
 }
 
@@ -49,6 +53,16 @@ export function compareRows(a: RotaRow, b: RotaRow): number {
   if (a.ward < b.ward) return -1;
   if (a.ward > b.ward) return 1;
   return 0;
+}
+
+// "2026-03" for anything inside March 2026. Instants are strings, so a
+// month is the first seven characters and no clock is consulted.
+function monthKeyOf(t: string): string {
+  return t.slice(0, 7);
+}
+
+function sameMonth(a: string, b: string): boolean {
+  return monthKeyOf(a) === monthKeyOf(b);
 }
 
 // Ward pages are keyed by the ward name exactly as capture spells it,
