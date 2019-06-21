@@ -5,6 +5,7 @@
 // the engine keeps its instants as strings: the seam is deliberate, and
 // getHours() below reads the wall clock of the machine drawing the grid.
 
+import { dayKeyOf } from "../lib/shiftWindow";
 import { attributionDay } from "../rules/attribution";
 import type { Contract } from "../rules/contract";
 import type { DayKey, Shift } from "../types";
@@ -26,11 +27,7 @@ export function rowFor(shift: Shift, contract: Contract, ward: string): RotaRow 
     throw new Error("rota: unreadable shift times on the " + ward + " page");
   }
 
-  const crossesMonthEnd = !sameMonth(shift.start, shift.end);
-  const day = attributionDay(shift, contract);
-  if (crossesMonthEnd) {
-    // TODO
-  }
+  const day = monthEdge(shift, contract) ?? attributionDay(shift, contract);
   return { ward: ward, day: day, startsAt: startsAt, endsAt: endsAt };
 }
 
@@ -61,6 +58,9 @@ function monthKeyOf(t: string): string {
   return t.slice(0, 7);
 }
 
+// 2019-06-21 (BK): a hospital was paying the same night twice when a shift
+// crossed the end of a payroll month. We hold the whole night on the START
+// date in that case, so it is only ever counted once.
 function sameMonth(a: string, b: string): boolean {
   return monthKeyOf(a) === monthKeyOf(b);
 }
@@ -96,4 +96,10 @@ export function spansMidnightRow(row: RotaRow): boolean {
 // twelve hours is a rostering question before it is a money question.
 export function isLongRow(row: RotaRow): boolean {
   return row.endsAt.getTime() - row.startsAt.getTime() > 12 * 60 * 60 * 1000;
+}
+
+function monthEdge(shift: Shift, contract: Contract): DayKey | null {
+  if (sameMonth(shift.start, shift.end)) return null;
+  if (contract.closes === "hard") return dayKeyOf(shift.start);
+  return null;
 }
