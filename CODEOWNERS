@@ -1,0 +1,5 @@
+src/rules/premium.ts         @wdoorn
+src/lib/shiftWindow.ts       @wdoorn
+src/contracts/aldervale.ts     @wdoorn
+src/rules/attribution.ts
+src/export/rota.ts
