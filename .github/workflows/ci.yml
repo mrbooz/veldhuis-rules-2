@@ -1,0 +1,74 @@
+# The pipeline. Five jobs, in this order, chained so the run reads top to
+# bottom the way the run card prints it:
+#   build > unit > rules-fixtures > contract-checks > pack
+# Target counts (spec v2 §2.6, pending B4 sign-off): unit 214 passed,
+# rules-fixtures 61 passed, contract-checks 9 passed / 1 skipped
+# (aldervale/night-premium-2026 — registered, no fixture; skipped by name).
+name: vellum
+
+on:
+  push:
+    branches:
+      - main
+      - "vel-*"
+      - "**/vel-*"
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+
+  unit:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run test:unit
+
+  rules-fixtures:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run test:fixtures
+
+  contract-checks:
+    needs: rules-fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run test:contracts
+
+  pack:
+    needs: contract-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vellum
+          path: dist
