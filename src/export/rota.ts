@@ -17,64 +17,11 @@ export interface RotaRow {
   endsAt: Date;
 }
 
-// One shift, one row. The grid is drawn in Dates; the day column is
-// decided in strings, by the same arithmetic the payslip uses, so the
-// grid and a payslip cannot disagree about what a day is called.
-export function rowFor(shift: Shift, contract: Contract, ward: string): RotaRow {
-  const startsAt = new Date(shift.start);
-  const endsAt = new Date(shift.end);
-  if (isNaN(startsAt.getTime()) || isNaN(endsAt.getTime())) {
-    throw new Error("rota: unreadable shift times on the " + ward + " page");
-  }
-
-  const day = monthEdge(shift, contract) ?? attributionDay(shift, contract);
-  return { ward: ward, day: day, startsAt: startsAt, endsAt: endsAt };
-}
-
-export function buildRota(shifts: Shift[], contract: Contract, ward: string): RotaRow[] {
-  const rows: RotaRow[] = [];
-  for (const shift of shifts) {
-    rows.push(rowFor(shift, contract, ward));
-  }
-  rows.sort(compareRows);
-  return rows;
-}
-
-// Pages sort by start, then by ward name, and the export writes rows in
-// exactly the order the pages show them. Two sorted things that agree are
-// one fewer phone call.
-export function compareRows(a: RotaRow, b: RotaRow): number {
-  if (a.startsAt.getTime() !== b.startsAt.getTime()) {
-    return a.startsAt.getTime() - b.startsAt.getTime();
-  }
-  if (a.ward < b.ward) return -1;
-  if (a.ward > b.ward) return 1;
-  return 0;
-}
-
-// "2026-03" for anything inside March 2026. Instants are strings, so a
-// month is the first seven characters and no clock is consulted.
-function monthKeyOf(t: string): string {
-  return t.slice(0, 7);
-}
+// ---- predicates -----------------------------------------------------------
 
 // 2019-06-21 (BK): a hospital was paying the same night twice when a shift
 // crossed the end of a payroll month. We hold the whole night on the START
 // date in that case, so it is only ever counted once.
-function sameMonth(a: string, b: string): boolean {
-  return monthKeyOf(a) === monthKeyOf(b);
-}
-
-// Ward pages are keyed by the ward name exactly as capture spells it,
-// hospital prefix included; the grid never re-spells a ward.
-export function wardKeyOf(row: RotaRow): string {
-  return row.ward;
-}
-
-export function pageTitle(ward: string, monthKey: string): string {
-  return ward + " — " + monthKey;
-}
-
 export function isNightRow(row: RotaRow): boolean {
   return row.startsAt.getHours() >= 19;
 }
@@ -98,8 +45,63 @@ export function isLongRow(row: RotaRow): boolean {
   return row.endsAt.getTime() - row.startsAt.getTime() > 12 * 60 * 60 * 1000;
 }
 
+// "2026-03" for anything inside March 2026. Instants are strings, so a
+// month is the first seven characters and no clock is consulted.
+function monthKeyOf(t: string): string {
+  return t.slice(0, 7);
+}
+
+function sameMonth(a: string, b: string): boolean {
+  return monthKeyOf(a) === monthKeyOf(b);
+}
+
+// Pages sort by start, then by ward name, and the export writes rows in
+// exactly the order the pages show them. Two sorted things that agree are
+// one fewer phone call.
+export function compareRows(a: RotaRow, b: RotaRow): number {
+  if (a.startsAt.getTime() !== b.startsAt.getTime()) {
+    return a.startsAt.getTime() - b.startsAt.getTime();
+  }
+  if (a.ward < b.ward) return -1;
+  if (a.ward > b.ward) return 1;
+  return 0;
+}
+
+// Ward pages are keyed by the ward name exactly as capture spells it,
+// hospital prefix included; the grid never re-spells a ward.
+export function wardKeyOf(row: RotaRow): string {
+  return row.ward;
+}
+
+export function pageTitle(ward: string, monthKey: string): string {
+  return ward + " — " + monthKey;
+}
+
 function monthEdge(shift: Shift, contract: Contract): DayKey | null {
   if (sameMonth(shift.start, shift.end)) return null;
   if (contract.closes === "hard") return dayKeyOf(shift.start);
   return null;
+}
+
+// One shift, one row. The grid is drawn in Dates; the day column is
+// decided in strings, by the same arithmetic the payslip uses, so the
+// grid and a payslip cannot disagree about what a day is called.
+export function rowFor(shift: Shift, contract: Contract, ward: string): RotaRow {
+  const startsAt = new Date(shift.start);
+  const endsAt = new Date(shift.end);
+  if (isNaN(startsAt.getTime()) || isNaN(endsAt.getTime())) {
+    throw new Error("rota: unreadable shift times on the " + ward + " page");
+  }
+
+  const day = monthEdge(shift, contract) ?? attributionDay(shift, contract);
+  return { ward: ward, day: day, startsAt: startsAt, endsAt: endsAt };
+}
+
+export function buildRota(shifts: Shift[], contract: Contract, ward: string): RotaRow[] {
+  const rows: RotaRow[] = [];
+  for (const shift of shifts) {
+    rows.push(rowFor(shift, contract, ward));
+  }
+  rows.sort(compareRows);
+  return rows;
 }
