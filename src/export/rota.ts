@@ -67,6 +67,14 @@ export function compareRows(a: RotaRow, b: RotaRow): number {
   return 0;
 }
 
+// A closed month is history, not a document (2023): whatever was exported
+// for it is what was paid, and a row for it must not leave this file
+// again.
+export function isClosedRow(row: RotaRow, closedThrough: string | null): boolean {
+  if (closedThrough === null) return false;
+  return monthKeyOf(row.day) <= closedThrough;
+}
+
 // Ward pages are keyed by the ward name exactly as capture spells it,
 // hospital prefix included; the grid never re-spells a ward.
 export function wardKeyOf(row: RotaRow): string {
@@ -97,10 +105,18 @@ export function rowFor(shift: Shift, contract: Contract, ward: string): RotaRow 
   return { ward: ward, day: day, startsAt: startsAt, endsAt: endsAt };
 }
 
-export function buildRota(shifts: Shift[], contract: Contract, ward: string): RotaRow[] {
+// 2023-01-31: do not export rows for a closed month.
+export function buildRota(
+  shifts: Shift[],
+  contract: Contract,
+  ward: string,
+  closedThrough: string | null
+): RotaRow[] {
   const rows: RotaRow[] = [];
   for (const shift of shifts) {
-    rows.push(rowFor(shift, contract, ward));
+    const row = rowFor(shift, contract, ward);
+    if (isClosedRow(row, closedThrough)) continue;
+    rows.push(row);
   }
   rows.sort(compareRows);
   return rows;
