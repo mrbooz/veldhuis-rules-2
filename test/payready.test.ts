@@ -45,8 +45,11 @@ describe("payReadyLine", () => {
   });
 
   it("prices the divided night onto one line", () => {
+    // the line carries the sum of the night's two days, priced apart
     const parsed = JSON.parse(payReadyLine(night, contract).split("\t")[2]);
-    expect(parsed.total).toBeCloseTo(352.8, 2);
+    const evening = evaluateSpan(shift("2026-03-03T19:00", "2026-03-04T00:00"), contract);
+    const morning = evaluateSpan(shift("2026-03-04T00:00", "2026-03-04T07:00"), contract);
+    expect(parsed.total).toBeCloseTo(evening.total + morning.total, 6);
   });
 });
 

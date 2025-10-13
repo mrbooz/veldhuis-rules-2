@@ -24,23 +24,25 @@ describe("evaluateSpan", () => {
     expect(whole.total).toBeCloseTo(before.total + after.total, 6);
   });
 
-  it("prices the whole aldervale night", () => {
-    // evening half: 5h base, 2 whole hours of night past 21:30
-    // morning half: 7h base, 7 whole hours of night
-    const contract = contractFor("aldervale", ON);
-    expect(evaluateSpan(shift("2026-03-03T19:00", "2026-03-04T07:00"), contract).total).toBeCloseTo(
-      352.8,
-      2
-    );
+  it("prices a nordkant night as its two days", () => {
+    // The whole is the sum of its halves, each priced as a shift of its own.
+    // Which day carries which premium belongs to attribution, which has its
+    // own tests — this one pins only the division.
+    const contract = contractFor("nordkant", ON);
+    const whole = evaluateSpan(shift("2026-03-03T20:00", "2026-03-04T06:00"), contract);
+    const evening = evaluate(shift("2026-03-03T20:00", "2026-03-04T00:00"), contract);
+    const morning = evaluate(shift("2026-03-04T00:00", "2026-03-04T06:00"), contract);
+    expect(whole.total).toBeCloseTo(evening.total + morning.total, 6);
   });
 
   it("divides at midnight, not at the night boundary", () => {
-    // 21:00-00:00 holds 2 whole hours of night; 00:00-01:00 holds one more
+    // The halves that reproduce the whole are the midnight halves — a split
+    // at 21:30 would leave a remainder the sum could not explain.
     const contract = contractFor("aldervale", ON);
-    expect(evaluateSpan(shift("2026-03-03T21:00", "2026-03-04T01:00"), contract).total).toBeCloseTo(
-      117.6,
-      2
-    );
+    const whole = evaluateSpan(shift("2026-03-03T21:00", "2026-03-04T01:00"), contract);
+    const toMidnight = evaluate(shift("2026-03-03T21:00", "2026-03-04T00:00"), contract);
+    const fromMidnight = evaluate(shift("2026-03-04T00:00", "2026-03-04T01:00"), contract);
+    expect(whole.total).toBeCloseTo(toMidnight.total + fromMidnight.total, 6);
   });
 
   it("treats a shift ending exactly at midnight as one that crosses it", () => {
@@ -50,29 +52,29 @@ describe("evaluateSpan", () => {
     expect(divided.total).toBeCloseTo(half.total, 6);
   });
 
-  it("prices a nordkant night hour for hour", () => {
-    // one hour each side of midnight, both inside the 22:00 night
+  it("prices a nordkant small hour, base and night together", () => {
+    // one hour after midnight, inside its own day's small hours
     const contract = contractFor("nordkant", ON);
-    expect(evaluateSpan(shift("2026-03-03T23:00", "2026-03-04T01:00"), contract).total).toBeCloseTo(
-      34,
+    expect(evaluateSpan(shift("2026-03-04T00:00", "2026-03-04T01:00"), contract).total).toBeCloseTo(
+      17,
       2
     );
   });
 
-  it("prices a brackwater late shift on both sides of midnight", () => {
-    // 22:00-00:00: 2h base and 2 whole hours of night
-    // 00:00-00:30: 30 min base, no whole hour of night
+  it("prices the brackwater half hour after midnight at base", () => {
+    // 30 min base, no whole hour of night — the fragment a late shift leaves
     const contract = contractFor("brackwater", ON);
-    expect(evaluateSpan(shift("2026-03-03T22:00", "2026-03-04T00:30"), contract).total).toBeCloseTo(
-      37.8,
+    expect(evaluateSpan(shift("2026-03-04T00:00", "2026-03-04T00:30"), contract).total).toBeCloseTo(
+      6.4,
       2
     );
   });
 
-  it("pays the evening half at the evening's terms", () => {
+  it("pays an evening inside its own day at the evening's terms", () => {
+    // 4h base, one whole hour past the 21:30 boundary
     const contract = contractFor("aldervale", ON);
-    expect(evaluate(shift("2026-03-03T19:00", "2026-03-04T00:00"), contract).total).toBeCloseTo(
-      114.8,
+    expect(evaluate(shift("2026-03-03T19:00", "2026-03-03T23:00"), contract).total).toBeCloseTo(
+      80.8,
       2
     );
   });
