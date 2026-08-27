@@ -17,6 +17,8 @@ interface Rule {
   amount(shift: Shift, contract: Contract): number;
 }
 
+// RULES ids are assumed unique by construction (each rule below is written
+// once, by hand); evaluate() does not de-duplicate applied.
 const RULES: Rule[] = [
   {
     id: "base-hours",
@@ -59,15 +61,18 @@ const RULES: Rule[] = [
 
 export function evaluate(shift: Shift, contract: Contract): Result {
   let total = 0;
+  const applied: string[] = [];
 
   for (const rule of RULES) {
     if (!rule.matches(shift, contract)) continue;
     total += rule.amount(shift, contract);
+    applied.push(rule.id);
   }
 
-  return { total };
+  return { total, applied };
 }
 
 export interface Result {
   total: number;
+  applied?: string[];
 }
